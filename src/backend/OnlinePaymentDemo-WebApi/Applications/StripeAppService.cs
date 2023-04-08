@@ -1,5 +1,7 @@
-﻿using OnlinePaymentDemo_WebApi.Contracts;
+﻿using OnlinePaymentDemo_WebApi.Contract;
+using OnlinePaymentDemo_WebApi.Contracts;
 using OnlinePaymentDemo_WebApi.Models;
+using OnlinePaymentDemo_WebApi.Repos;
 using Stripe;
 
 namespace OnlinePaymentDemo_WebApi.Applications
@@ -9,14 +11,16 @@ namespace OnlinePaymentDemo_WebApi.Applications
         private readonly ChargeService _chargeService;
         private readonly CustomerService _customerService;
         private readonly TokenService _tokenService;
+        private readonly IRepository _repositroy;
 
         public StripeAppService(ChargeService chargeService, 
-            CustomerService customerService,
+            CustomerService customerService, IRepository repositroy,
             TokenService tokenService)
         {
             _chargeService = chargeService;
             _customerService = customerService;
             _tokenService = tokenService;
+            _repositroy = repositroy;
         }
         public async Task<StripeCustomer> AddStripeCustomerAsync(AddStripeCustomer customer, CancellationToken ct)
         {
@@ -48,7 +52,15 @@ namespace OnlinePaymentDemo_WebApi.Applications
 
             Customer createCustomer = await _customerService.CreateAsync(customerOptions, null, ct);
 
-            return new StripeCustomer(createCustomer.Name, createCustomer.Email, createCustomer.Id);
+            CCustomer cCustomer = new CCustomer()
+            {
+                Email = createCustomer.Email,
+                Name = createCustomer.Name,
+            };
+
+            await _repositroy.CreateCustomer(cCustomer);
+
+            return new StripeCustomer(createCustomer.Id, createCustomer.Name, createCustomer.Email);
         }
 
         public async Task<StripePayment> AddStripePaymentAsync(AddStripePayment payment, CancellationToken ct)
